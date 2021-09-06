@@ -1,5 +1,7 @@
 "use strict";
 
+// these palettes are used from Matt DesLaurier's project Audiograph.xyz,
+// originally sourced from colourlovers.com
 const Palettes = [
   ["#69D2E7", "#A7DBD8", "#E0E4CC", "#F38630", "#FA6900"],
   ["#FE4365", "#FC9D9A", "#F9CDAD", "#C8C8A9", "#83AF9B"],
@@ -196,7 +198,7 @@ const Palettes = [
   ["#4B3E4D", "#1E8C93", "#DBD8A2", "#C4AC30", "#D74F33"],
   ["#8D7966", "#A8A39D", "#D8C8B8", "#E2DDD9", "#F8F1E9"],
   ["#F2E8C4", "#98D9B6", "#3EC9A7", "#2B879E", "#616668"],
-  ["#5CACC4", "#8CD19D", "#CEE879", "#FCB653", "#FF5254"]
+  ["#5CACC4", "#8CD19D", "#CEE879", "#FCB653", "#FF5254"],
 ];
 
 export default Palettes;

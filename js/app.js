@@ -58,8 +58,8 @@ const sizeDist = {
 };
 
 const pointUpdate = function () {
-  const xSpeed = Math.random() > 0.5 ? -0.05 : 0.05;
-  const ySpeed = Math.random() > 0.5 ? -0.05 : 0.05;
+  const xSpeed = Math.random() > 0.5 ? -0.15 : 0.05;
+  const ySpeed = Math.random() > 0.5 ? -0.05 : 0.15;
 
   return Math.random() > 0.9
     ? function () {
@@ -288,6 +288,142 @@ const MINSKY = 2;
 const SCRATCH = 3;
 let mode = randomChoiceDist({ MINE: 0.3, MINSKY: 0.7, SCRATCH: 0 });
 
+const initAudioAndControls = () => {
+  const div = document.createElement("div");
+  div.innerHTML = "&gt; audio";
+  div.setAttribute("class", "controls");
+  let volume = null;
+  const mute = () => {
+    volume.mute = true;
+    div.removeEventListener("click", mute);
+    div.addEventListener("click", unmute);
+    div.innerHTML = "unmute";
+  };
+
+  const unmute = () => {
+    volume.mute = false;
+    div.removeEventListener("click", unmute);
+    div.addEventListener("click", mute);
+    div.innerHTML = "mute";
+  };
+
+  const setupAudioControls = async () => {
+    div.removeEventListener("click", setupAudioControls);
+    div.addEventListener("click", mute);
+    div.innerHTML = "mute";
+    console.log("init tones");
+    await Tone.start();
+    volume = new Tone.Volume(-20).toMaster();
+    // synth setup taken from https://github.com/mezoistvan/discreetmusic
+    // and originally from https://teropa.info/blog/2016/07/28/javascript-systems-music.html
+    let envelope = {
+      attack: 0.1,
+      release: 3,
+      releaseCurve: "linear",
+    };
+    let filterEnvelope = {
+      baseFrequency: 200,
+      octaves: 2,
+      attack: 0,
+      decay: 0,
+      release: 800,
+    };
+    const synth = new Tone.PolySynth(4, Tone.DuoSynth, {
+      harmonicity: 2,
+      volume: -25,
+      voice0: {
+        oscillator: { type: "triangle8" },
+        envelope,
+        filterEnvelope,
+      },
+      voice1: {
+        oscillator: { type: "sine" },
+        envelope,
+        filterEnvelope,
+      },
+      vibratoRate: 0.5,
+      vibratoAmount: 0.1,
+    });
+    synth.connect(volume);
+    const length = "32n";
+    const notes = [
+      // D4:
+      // DFAD
+      [["D4"], length],
+      [["F4"], length],
+      [["A4"], length],
+      [["D5"], length],
+      [["A4"], length],
+      [["F4"], length],
+
+      [["D4"], length],
+      [["F4"], length],
+      [["A4"], length],
+      [["D5"], length],
+      [["A4"], length],
+      [["F4"], length],
+
+      // DGBD
+      [["D4"], length],
+      [["G4"], length],
+      [["B4"], length],
+      [["D5"], length],
+      [["B4"], length],
+      [["G4"], length],
+
+      [["D4"], length],
+      [["G4"], length],
+      [["B4"], length],
+      [["D5"], length],
+      [["B4"], length],
+      [["G4"], length],
+
+      // DACE
+      [["D4"], length],
+      [["A4"], length],
+      [["C5"], length],
+      [["E5"], length],
+      [["C5"], length],
+      [["A4"], length],
+
+      [["D4"], length],
+      [["A4"], length],
+      [["C5"], length],
+      [["E5"], length],
+      [["C5"], length],
+      [["A4"], length],
+
+      // DGBD
+      [["D4"], length],
+      [["G4"], length],
+      [["B4"], length],
+      [["D5"], length],
+      [["B4"], length],
+      [["G4"], length],
+
+      [["D4"], length],
+      [["G4"], length],
+      [["B4"], length],
+      [["D5"], length],
+      [["B4"], length],
+      [["G4"], length],
+    ];
+    let index = 0;
+    const playNotes = () => {
+      const notesToPlay = notes[index % notes.length][0];
+      // add some occasional random harmony:
+      if (index % 8 === 0) {
+        notesToPlay.push(randomChoice(["D3", "A3", "B3", "G3"]));
+      }
+      synth.triggerAttackRelease(notesToPlay, notes[index % notes.length][1]);
+      index += 1;
+    };
+    setInterval(playNotes, 350);
+  };
+  div.addEventListener("click", setupAudioControls);
+  document.body.appendChild(div);
+};
+
 window.onload = () => {
   canvas = document.getElementById("canvas");
   context = canvas.getContext("2d");
@@ -295,6 +431,7 @@ window.onload = () => {
   palette = randomChoice(palettes);
   console.log("palette:", palette);
   run();
+  initAudioAndControls();
 };
 
 window.onresize = () => {
@@ -306,5 +443,5 @@ const run = () => {
   canvas.width = Math.max(window.innerHeight, window.innerWidth) * 1.2;
   context.save();
   context.translate(window.innerWidth / 2, window.innerHeight / 2);
-  drawInterval = setInterval(draw, 35);
+  drawInterval = setInterval(draw, 50);
 };
