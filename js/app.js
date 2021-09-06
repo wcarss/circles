@@ -101,11 +101,18 @@ const draw = () => {
 
   i = i % 2500;
   context.rotate(1 / (Math.PI * 2 * 50));
+  if (i % 73 === 0) {
+    x_skew_velocity *= -1;
+  }
+  if (i % 53 === 0) {
+    y_skew_velocity *= -1;
+  }
+  context.transform(1, x_skew_velocity, y_skew_velocity, 1, 0, 0);
 
   if (i % 103 === 0) {
     drawLines = !drawLines;
   }
-  if (i % 1033 === 0) {
+  if (i % 733 === 0 && Math.random() > 0.5) {
     palette = randomChoice(palettes);
   }
   if (i % 31) {
@@ -283,6 +290,8 @@ let drawShapes = false;
 let drawLines = false;
 let i = 0;
 let resized = false;
+let x_skew_velocity = 0.0004;
+let y_skew_velocity = 0.0004;
 const MINE = 1;
 const MINSKY = 2;
 const SCRATCH = 3;
@@ -429,7 +438,6 @@ window.onload = () => {
   context = canvas.getContext("2d");
   context.lineWidth = 0.5;
   palette = randomChoice(palettes);
-  console.log("palette:", palette);
   run();
   initAudioAndControls();
 };
