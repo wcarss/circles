@@ -47,6 +47,53 @@ const wrap = (v, low, high) => {
   }
   return v;
 };
+const ease_in_ease_out = (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
+const lerp = (a, b, t) => {
+  // const min = Math.min(a, b);
+  // const diff = Math.abs(a - b);
+  return ease_in_ease_out(t) * (b - a) + a;
+  //return (b - a) * t + a;
+};
+
+const hexToHsl = (hexColour) => {
+  const r = parseInt(hexColour.slice(1, 3), 16) / 255;
+  const g = parseInt(hexColour.slice(3, 5), 16) / 255;
+  const b = parseInt(hexColour.slice(5, 7), 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h,
+    s,
+    l = (max + min) / 2;
+
+  if (max === min) {
+    h = s = 0; // achromatic
+  } else {
+    let d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      case b:
+        h = (r - g) / d + 4;
+        break;
+    }
+
+    h /= 6;
+  }
+
+  return { h, s, l };
+};
+
+const hslToString = (hsl) => {
+  return `hsl(${(hsl.h * 360).toFixed(2)}, ${(hsl.s * 100).toFixed(2)}%, ${(
+    hsl.l * 100
+  ).toFixed(2)}%)`;
+};
 
 const sizeDist = {
   392: 1 / 100000,
@@ -58,15 +105,31 @@ const sizeDist = {
 };
 
 const pointUpdate = function () {
-  const xSpeed = Math.random() > 0.5 ? -0.15 : 0.05;
-  const ySpeed = Math.random() > 0.5 ? -0.05 : 0.15;
+  const xSpeed = 0; //Math.random() > 0.5 ? -0.15 : 0.05;
+  const ySpeed = 0; //Math.random() > 0.5 ? -0.05 : 0.15;
+  const accumulatorSpeed = 0.0005;
 
-  return Math.random() > 0.9
-    ? function () {
-        this.x += xSpeed;
-        this.y += ySpeed;
-      }
-    : () => {};
+  return function () {
+    if (!this.accumulator) {
+      this.accumulator = 0.1;
+    } else {
+      this.accumulator += accumulatorSpeed;
+    }
+    if (this.x > 0) {
+      this.x += this.accumulator;
+    } else {
+      this.x -= this.accumulator;
+    }
+    if (this.y > 0) {
+      this.y += this.accumulator;
+    } else {
+      this.y -= this.accumulator;
+    }
+    this.x += xSpeed;
+    this.y += ySpeed;
+    this.xs += this.accumulator / 100;
+    this.ys += this.accumulator / 100;
+  };
 };
 
 const draw = () => {
@@ -112,8 +175,52 @@ const draw = () => {
   if (i % 103 === 0) {
     drawLines = !drawLines;
   }
-  if (i % 733 === 0 && Math.random() > 0.5) {
-    palette = randomChoice(palettes);
+  if ((i + 1) % 300 === 0) {
+    oldPalette = [...palette];
+    oldPaletteHSL = [];
+    let j = 0;
+    for (const oldColour of oldPalette) {
+      oldPaletteHSL.push(hexToHsl(oldColour));
+    }
+    newPalette = [...randomChoice(palettes)];
+    newPaletteHSL = [];
+    for (const newColour of newPalette) {
+      newPaletteHSL.push(hexToHsl(newColour));
+    }
+    paletteChangeStart = i;
+    paletteChange = true;
+  }
+  if (paletteChange) {
+    let time = i - paletteChangeStart;
+    if (i < paletteChangeStart) {
+      time = 2500 + i - paletteChangeStart;
+    }
+    if (time >= paletteChangeTime) {
+      paletteChange = false;
+      paletteChangeStart = null;
+      oldPalette = null;
+      oldPaletteHSL = null;
+      newPaletteHSL = null;
+      palette = newPalette;
+      newPalette = null;
+    } else {
+      const intermediatePalette = [];
+      let paletteIndex = 0;
+      for (const colour of oldPaletteHSL) {
+        if (paletteIndex >= newPalette.length) {
+          break;
+        }
+        const newPaletteColour = newPaletteHSL[paletteIndex];
+        const newColour = {
+          h: lerp(colour.h, newPaletteColour.h, time / paletteChangeTime),
+          s: lerp(colour.s, newPaletteColour.s, time / paletteChangeTime),
+          l: lerp(colour.l, newPaletteColour.l, time / paletteChangeTime),
+        };
+        intermediatePalette.push(hslToString(newColour));
+        paletteIndex += 1;
+      }
+      palette = [...intermediatePalette];
+    }
   }
   if (i % 31) {
     drawShapes = !drawShapes;
@@ -147,8 +254,8 @@ const draw = () => {
   yb = wrap(yb, -maxYSize, maxYSize);
   yc = wrap(yc, -maxYSize, maxYSize);
 
-  const xs = drawLines ? 2 : randomChoiceDist(sizeDist); //8 - ((i * 2) % 6);
-  const ys = drawLines ? 2 : 12; //8 - ((i * 2) % 6);
+  const xs = drawLines ? 2 : parseInt(randomChoiceDist(sizeDist)); //8 - ((i * 2) % 6);
+  const ys = xs; //drawLines ? 2 : 12; //8 - ((i * 2) % 6);
 
   points.push({
     x: xa + 0,
@@ -292,6 +399,14 @@ let i = 0;
 let resized = false;
 let x_skew_velocity = 0.0004;
 let y_skew_velocity = 0.0004;
+let paletteChange = false;
+let paletteChangeStart = null;
+let paletteChangeTime = 53;
+let oldPalette = null;
+let oldPaletteHSL = null;
+let newPalette = null;
+let newPaletteHSL = null;
+
 const MINE = 1;
 const MINSKY = 2;
 const SCRATCH = 3;
@@ -320,7 +435,6 @@ const initAudioAndControls = () => {
     div.removeEventListener("click", setupAudioControls);
     div.addEventListener("click", mute);
     div.innerHTML = "mute";
-    console.log("init tones");
     await Tone.start();
     volume = new Tone.Volume(-20).toMaster();
     // synth setup taken from https://github.com/mezoistvan/discreetmusic
